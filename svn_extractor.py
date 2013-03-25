@@ -23,7 +23,7 @@ def readsvn(data,urli):
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
             if old_line != "":
-                folder_path="output\\" + urli.replace("http://","").replace("/","\\") + "\\" + old_line
+                folder_path="output\\" + urli.replace("http://","").replace("https://","").replace("/","\\") + "\\" + old_line
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 dir_list = dir_list + ";" + old_line
@@ -34,7 +34,7 @@ def readsvn(data,urli):
     return file_list,dir_list,user
 
 def readwc(data,urli):
-    folder = "output\\" + urli.replace("http://","").replace("/","\\")
+    folder = "output\\" + urli.replace("http://","").replace("https://","").replace("/","\\")
     if not folder.endswith('\\'):
         folder = folder  + "\\"
     with open(folder + "wc.db","wb") as f:
@@ -43,8 +43,9 @@ def readwc(data,urli):
     c = conn.cursor()
     c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES;')
     list_items = c.fetchall()
-    c.execute('select distinct changed_author from nodes;')
-    auther_list = c.fetchall()
+    #below functionality will find all usernames who have commited atleast once.
+    #c.execute('select distinct changed_author from nodes;')
+    #auther_list = c.fetchall()
     c.close()
     for filename,url_path in list_items:
         print urli + filename
@@ -54,11 +55,11 @@ def readwc(data,urli):
 def save_url_wc(url,filename,svn_path):
     if filename != "":
         if svn_path is None:
-            folder_path="output\\" + url.replace("http://","").replace("/","\\")+ filename.replace("/","\\")
+            folder_path="output\\" + url.replace("http://","").replace("https://","").replace("/","\\")+ filename.replace("/","\\")
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
 	else:
-            folder = "output\\" + url.replace("http://","").replace("/","\\") + os.path.dirname(filename).replace("/","\\")
+            folder = "output\\" + url.replace("http://","").replace("https://","").replace("/","\\") + os.path.dirname(filename).replace("/","\\")
             if not os.path.exists(folder):
                 os.makedirs(folder)
 	    if not folder.endswith('\\'):
@@ -69,7 +70,7 @@ def save_url_wc(url,filename,svn_path):
     return 0
 
 def save_url_svn(url,filename):
-    folder="output\\" + url.replace("http://","").replace("/","\\")
+    folder="output\\" + url.replace("http://","").replace("https://","").replace("/","\\")
     if not folder.endswith('\\'):
         folder = folder  + "\\" 
     r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base")
@@ -102,12 +103,9 @@ This program actually automates the directory navigation and text extraction pro
 	print "Invalid url specified"
 	print e
 	exit()
-    if r.status_code == 404:
-	print "URL returns " + str(r.status_code)
-	exit()
-    else:
+    if [200,403].count(r.status_code) > 0:
 	print "URL is active"
-        folder_path="output\\" + url.replace("http://","").replace("/","\\")
+        folder_path="output\\" + url.replace("http://","").replace("https://","").replace("/","\\")
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 	print "Checking for presence of wc.db"    
@@ -125,6 +123,10 @@ This program actually automates the directory navigation and text extraction pro
 		exit();
 	print "FAILED"
 	print (url + " doesn't contains any SVN repository in it")
+    else:
+    	print "URL returns " + str(r.status_code)
+	exit()
+
 	
 if __name__ == "__main__":
    main(sys.argv[1:])
