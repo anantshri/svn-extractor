@@ -69,7 +69,7 @@ def save_url_wc(url,filename,svn_path):
 		with open(folder+os.path.basename(filename),"wb") as f:
 			f.write(r.content)
 	    except:
-	        print "Error while accessing : " url + svn_path
+	        print "Error while accessing : " + url + svn_path
     return 0
 
 def save_url_svn(url,filename):
