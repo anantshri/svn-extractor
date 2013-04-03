@@ -93,11 +93,11 @@ This program actually automates the directory navigation and text extraction pro
     parser.add_argument("--url",help="Provide URL",dest='target',required=True)
     x=parser.parse_args()
     url=x.target
+    if url is None:
+	exit()
     print url
     if not url.endswith('/'):
         url = url + "/"
-    if url is None:
-	exit()
     print "Checking if URL is correct"
     try:
 	r=requests.get(url)
