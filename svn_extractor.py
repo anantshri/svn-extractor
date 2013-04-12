@@ -41,15 +41,19 @@ def readwc(data,urli):
         f.write(data.content)
     conn = sqlite3.connect(folder + "wc.db")
     c = conn.cursor()
-    c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES;')
-    list_items = c.fetchall()
-    #below functionality will find all usernames who have commited atleast once.
-    #c.execute('select distinct changed_author from nodes;')
-    #auther_list = c.fetchall()
-    c.close()
-    for filename,url_path in list_items:
-        print urli + filename
-        save_url_wc(urli,filename,url_path)
+    try:
+	c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES;')
+	list_items = c.fetchall()
+	#below functionality will find all usernames who have commited atleast once.
+	#c.execute('select distinct changed_author from nodes;')
+	#auther_list = c.fetchall()
+	c.close()
+	for filename,url_path in list_items:
+		print urli + filename
+		save_url_wc(urli,filename,url_path)
+    except:
+	print "Error reading wc.db, either database corrupt or invalid file"
+	return 1
     return 0
 
 def save_url_wc(url,filename,svn_path):
@@ -115,8 +119,9 @@ This program actually automates the directory navigation and text extraction pro
 	r=requests.get(url + "/.svn/wc.db")
 	if r.status_code == 200:
 		print "WC.db found"
-		readwc(r,url)
-		exit()
+		rwc=readwc(r,url)
+		if rwc == 0:
+			exit()
 	print "FAILED"
 	print "lets see if we can find .svn/entries"
 	r=requests.get(url + "/.svn/entries")
