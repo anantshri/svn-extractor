@@ -28,7 +28,7 @@ def readsvn(data,urli):
                     os.makedirs(folder_path)
                 dir_list = dir_list + ";" + old_line
                 print urli + old_line
-                d=requests.get(urli+old_line + "/.svn/entries")
+                d=requests.get(urli+old_line + "/.svn/entries", verify=False)
                 readsvn(d,urli+old_line)
         old_line = a
     return file_list,dir_list,user
@@ -69,7 +69,7 @@ def save_url_wc(url,filename,svn_path):
 	    if not folder.endswith('\\'):
 		folder = folder  + "\\"
             try:
-		r=requests.get(url + svn_path)
+		r=requests.get(url + svn_path, verify=False)
 		with open(folder+os.path.basename(filename),"wb") as f:
 			f.write(r.content)
 	    except:
@@ -80,7 +80,7 @@ def save_url_svn(url,filename):
     folder=os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep))
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
-    r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base")
+    r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False)
     with open(folder + filename,"wb") as f:
         f.write(r.content)
     return 0
@@ -104,7 +104,7 @@ This program actually automates the directory navigation and text extraction pro
         url = url + "/"
     print "Checking if URL is correct"
     try:
-	r=requests.get(url)
+	r=requests.get(url, verify=False)
     except Exception,e:
 	print "Problem connecting to URL:"
 	import traceback
@@ -116,7 +116,7 @@ This program actually automates the directory navigation and text extraction pro
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 	print "Checking for presence of wc.db"    
-	r=requests.get(url + "/.svn/wc.db")
+	r=requests.get(url + "/.svn/wc.db", verify=False)
 	if r.status_code == 200:
 		print "WC.db found"
 		rwc=readwc(r,url)
@@ -124,7 +124,7 @@ This program actually automates the directory navigation and text extraction pro
 			exit()
 	print "FAILED"
 	print "lets see if we can find .svn/entries"
-	r=requests.get(url + "/.svn/entries")
+	r=requests.get(url + "/.svn/entries", verify=False)
 	if r.status_code == 200:
 		print "SVN Entries Found"
 		data=readsvn(r,url)
