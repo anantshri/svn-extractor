@@ -23,20 +23,20 @@ def readsvn(data,urli):
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
             if old_line != "":
-                folder_path="output\\" + urli.replace("http://","").replace("https://","").replace("/","\\") + "\\" + old_line
+            	folder_path = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep),  old_line)
                 if not os.path.exists(folder_path):
                     os.makedirs(folder_path)
                 dir_list = dir_list + ";" + old_line
                 print urli + old_line
-                d=requests.get(urli+old_line + "/.svn/entries", verify=False)
+                d=requests.get(urli+old_line + "/.svn/entries")
                 readsvn(d,urli+old_line)
         old_line = a
     return file_list,dir_list,user
 
 def readwc(data,urli):
-    folder = "output\\" + urli.replace("http://","").replace("https://","").replace("/","\\")
-    if not folder.endswith('\\'):
-        folder = folder  + "\\"
+    folder = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep))
+    if not folder.endswith(os.path.sep):
+        folder = folder  + os.path.sep
     with open(folder + "wc.db","wb") as f:
         f.write(data.content)
     conn = sqlite3.connect(folder + "wc.db")
@@ -59,11 +59,11 @@ def readwc(data,urli):
 def save_url_wc(url,filename,svn_path):
     if filename != "":
         if svn_path is None:
-            folder_path="output\\" + url.replace("http://","").replace("https://","").replace("/","\\")+ filename.replace("/","\\")
+            folder_path = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep, filename.replace("/",os.path.sep)))
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
 	else:
-            folder = "output\\" + url.replace("http://","").replace("https://","").replace("/","\\") + os.path.dirname(filename).replace("/","\\")
+	    folder = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep), os.path.dirname(filename).replace("/",os.path.sep))
             if not os.path.exists(folder):
                 os.makedirs(folder)
 	    if not folder.endswith('\\'):
@@ -77,10 +77,10 @@ def save_url_wc(url,filename,svn_path):
     return 0
 
 def save_url_svn(url,filename):
-    folder="output\\" + url.replace("http://","").replace("https://","").replace("/","\\")
-    if not folder.endswith('\\'):
-        folder = folder  + "\\" 
-    r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False)
+    folder=os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep))
+    if not folder.endswith(os.path.sep):
+        folder = folder  + os.path.sep
+    r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base")
     with open(folder + filename,"wb") as f:
         f.write(r.content)
     return 0
@@ -104,7 +104,7 @@ This program actually automates the directory navigation and text extraction pro
         url = url + "/"
     print "Checking if URL is correct"
     try:
-	r=requests.get(url, verify=False)
+	r=requests.get(url)
     except Exception,e:
 	print "Problem connecting to URL:"
 	import traceback
@@ -112,11 +112,11 @@ This program actually automates the directory navigation and text extraction pro
 	exit()
     if [200,403].count(r.status_code) > 0:
 	print "URL is active"
-        folder_path="output\\" + url.replace("http://","").replace("https://","").replace("/","\\")
+        folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 	print "Checking for presence of wc.db"    
-	r=requests.get(url + "/.svn/wc.db", verify=False)
+	r=requests.get(url + "/.svn/wc.db")
 	if r.status_code == 200:
 		print "WC.db found"
 		rwc=readwc(r,url)
@@ -124,7 +124,7 @@ This program actually automates the directory navigation and text extraction pro
 			exit()
 	print "FAILED"
 	print "lets see if we can find .svn/entries"
-	r=requests.get(url + "/.svn/entries", verify=False)
+	r=requests.get(url + "/.svn/entries")
 	if r.status_code == 200:
 		print "SVN Entries Found"
 		data=readsvn(r,url)
