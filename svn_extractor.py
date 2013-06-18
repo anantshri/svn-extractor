@@ -105,10 +105,10 @@ This program actually automates the directory navigation and text extraction pro
     print "Checking if URL is correct"
     try:
 	r=requests.get(url)
-    except:
-	e = sys.exc_info()[0]
-	print "Invalid url specified"
-	print e
+    except Exception,e:
+	print "Problem connecting to URL:"
+	import traceback
+	traceback.print_exc()
 	exit()
     if [200,403].count(r.status_code) > 0:
 	print "URL is active"
