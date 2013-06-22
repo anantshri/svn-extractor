@@ -20,13 +20,15 @@ def readsvn(data,urli):
             #print "UserName found : " + old_line
         if (a == "file"):
             print urli + old_line
-            save_url_svn(urli,old_line)
+            if no_extract:
+		save_url_svn(urli,old_line)
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
             if old_line != "":
             	folder_path = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep),  old_line)
                 if not os.path.exists(folder_path):
-                    os.makedirs(folder_path)
+			if no_extract:
+				os.makedirs(folder_path)
                 dir_list = dir_list + ";" + old_line
                 print urli + old_line
                 d=requests.get(urli+old_line + "/.svn/entries", verify=False)
@@ -51,11 +53,12 @@ def readwc(data,urli):
 	c.close()
 	for filename,url_path in list_items:
 		print urli + filename
-		save_url_wc(urli,filename,url_path)
-    except:
+		if no_extract:
+			save_url_wc(urli,filename,url_path)
+    except Exception,e:
 	print "Error reading wc.db, either database corrupt or invalid file"
-	#if x.debug:
-	traceback.print_exc()
+	if show_debug:
+		traceback.print_exc()
 	return 1
     return 0
 
@@ -75,8 +78,11 @@ def save_url_wc(url,filename,svn_path):
 		r=requests.get(url + svn_path, verify=False)
 		with open(folder+os.path.basename(filename),"wb") as f:
 			f.write(r.content)
-	    except:
-	        print "Error while accessing : " + url + svn_path
+	    except Exception,e:
+		print "Error while accessing : " + url + svn_path
+		if show_debug:
+			traceback.print_exc()
+
     return 0
 
 def save_url_svn(url,filename):
@@ -98,11 +104,17 @@ This program actually automates the directory navigation and text extraction pro
     Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs"""
     parser = argparse.ArgumentParser(description=desc,epilog=epilog)
     parser.add_argument("--url",help="Provide URL",dest='target',required=True)
-    parser.add_argument("--debug",help="Provide debug information",action="store_false")
+    parser.add_argument("--debug",help="Provide debug information",action="store_true")
+    parser.add_argument("--noextract",help="Don't extract files just show content",action="store_false")
+    #using no extract in a compliment format if its defined then it will be false hence
     parser.add_argument("--wcdb", help="check only wcdb",action="store_true")
     parser.add_argument("--entries", help="check only .svn/entries file",action="store_true")
     x=parser.parse_args()
     url=x.target
+    global show_debug
+    global no_extract
+    no_extract=x.noextract
+    show_debug=x.debug
     if (x.wcdb and x.entries):
 	print "Checking both wc.db and .svn/entries (default behaviour no need to specify switch)"
 	x.wcdb = False
@@ -116,8 +128,8 @@ This program actually automates the directory navigation and text extraction pro
     try:
 	r=requests.get(url, verify=False)
     except Exception,e:
-	print "Problem connecting to URL:"
-	if x.debug:
+	print "Problem connecting to URL"
+	if show_debug:
 		traceback.print_exc()
 	exit()
     if [200,403].count(r.status_code) > 0:
@@ -138,7 +150,7 @@ This program actually automates the directory navigation and text extraction pro
 		print "lets see if we can find .svn/entries"
 		r=requests.get(url + "/.svn/entries", verify=False)
 		if r.status_code == 200:
-			print "SVN Entries Found"
+			print "SVN Entries Found if no file listed check wc.db too"
 			data=readsvn(r,url)
 			exit();
 		print "FAILED"
