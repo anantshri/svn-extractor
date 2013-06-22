@@ -5,6 +5,7 @@ import sys
 import argparse
 import os
 import sqlite3
+import traceback
 
 def readsvn(data,urli):
     old_line=""
@@ -42,7 +43,7 @@ def readwc(data,urli):
     conn = sqlite3.connect(folder + "wc.db")
     c = conn.cursor()
     try:
-	c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES;')
+	c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES where kind="file";')
 	list_items = c.fetchall()
 	#below functionality will find all usernames who have commited atleast once.
 	#c.execute('select distinct changed_author from nodes;')
@@ -53,6 +54,8 @@ def readwc(data,urli):
 		save_url_wc(urli,filename,url_path)
     except:
 	print "Error reading wc.db, either database corrupt or invalid file"
+	#if x.debug:
+	traceback.print_exc()
 	return 1
     return 0
 
@@ -95,8 +98,15 @@ This program actually automates the directory navigation and text extraction pro
     Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs"""
     parser = argparse.ArgumentParser(description=desc,epilog=epilog)
     parser.add_argument("--url",help="Provide URL",dest='target',required=True)
+    parser.add_argument("--debug",help="Provide debug information",action="store_false")
+    parser.add_argument("--wcdb", help="check only wcdb",action="store_true")
+    parser.add_argument("--entries", help="check only .svn/entries file",action="store_true")
     x=parser.parse_args()
     url=x.target
+    if (x.wcdb and x.entries):
+	print "Checking both wc.db and .svn/entries (default behaviour no need to specify switch)"
+	x.wcdb = False
+	x.entries=False
     if url is None:
 	exit()
     print url
@@ -107,29 +117,31 @@ This program actually automates the directory navigation and text extraction pro
 	r=requests.get(url, verify=False)
     except Exception,e:
 	print "Problem connecting to URL:"
-	import traceback
-	traceback.print_exc()
+	if x.debug:
+		traceback.print_exc()
 	exit()
     if [200,403].count(r.status_code) > 0:
 	print "URL is active"
         folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-	print "Checking for presence of wc.db"    
-	r=requests.get(url + "/.svn/wc.db", verify=False)
-	if r.status_code == 200:
-		print "WC.db found"
-		rwc=readwc(r,url)
-		if rwc == 0:
-			exit()
-	print "FAILED"
-	print "lets see if we can find .svn/entries"
-	r=requests.get(url + "/.svn/entries", verify=False)
-	if r.status_code == 200:
-		print "SVN Entries Found"
-		data=readsvn(r,url)
-		exit();
-	print "FAILED"
+	if not x.entries:
+		print "Checking for presence of wc.db"    
+		r=requests.get(url + "/.svn/wc.db", verify=False)
+		if r.status_code == 200:
+			print "WC.db found"
+			rwc=readwc(r,url)
+			if rwc == 0:
+				exit()
+		print "FAILED"
+	if not x.wcdb:
+		print "lets see if we can find .svn/entries"
+		r=requests.get(url + "/.svn/entries", verify=False)
+		if r.status_code == 200:
+			print "SVN Entries Found"
+			data=readsvn(r,url)
+			exit();
+		print "FAILED"
 	print (url + " doesn't contains any SVN repository in it")
     else:
     	print "URL returns " + str(r.status_code)
