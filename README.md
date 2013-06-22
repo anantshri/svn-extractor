@@ -14,17 +14,16 @@ How this could be achieved.
 
 1) Uncover hidden files and folder names
 
-There are two ways in which this can be achieved based on the version of SVN in use.
-for <1.6 we had .svn/entries files which contained list of files / folders as well as usernames used for commiting those files.
-for >1.6 we have .svn/wc.db which contains simmilar data but in a sqlite3 format.
+There are two ways in which this can be achieved based on the version of SVN in use.  
+for <1.6 we had .svn/entries files which contained list of files / folders as well as usernames used for commiting those files.  
+for >1.6 we have .svn/wc.db which contains simmilar data but in a sqlite3 format.  
 These files could be directly accessible through url.
 
 2) Access the source code / download files even if htaccess blocks its access.
 
 SVN keeps a backup copy of all files in two seperate locations.
 
-1) .svn/text-base/ **"filename"** .svn-base
-
+1) .svn/text-base/ **"filename"** .svn-base  
 2) .svn/pristine/ **"XX"** / **"CHECKSUM"** .svn-base
 
 where
@@ -49,25 +48,27 @@ so here is a tool which can perform both the operations in one script.
 
 Usage
 =====
+**minimal**  
+
 svn-extractor.py --url "url with .svn available"
 
-alloptions
+**alloptions**  
 
-python svnextractor.py --help
-usage: svnextractor.py [-h] --url TARGET [--debug] [--noextract] [--userlist] [--wcdb] [--entries]
+python svnextractor.py --help  
+usage: svnextractor.py [-h] --url TARGET [--debug] [--noextract] [--userlist] [--wcdb] [--entries]  
 
-This program is used to extract the hidden SVN files from a webhost considering either .svn entries file (<1.6) or wc.db (> 1.7) are a actually automates the directory navigation and text extraction process
+This program is used to extract the hidden SVN files from a webhost considering either .svn entries file (<1.6) or wc.db (> 1.7) are a actually automates the directory navigation and text extraction process  
 
-optional arguments:
-  -h, --help    show this help message and exit
-  --url TARGET  Provide URL
-  --debug       Provide debug information
-  --noextract   Don't extract files just show content
-  --userlist    show the usernames used for commit
-  --wcdb        check only wcdb
-  --entries     check only .svn/entries file
-
-Credit (C) Anant Shrivastava http://anantshri.info Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs
+optional arguments:  
+  -h, --help    show this help message and exit  
+  --url TARGET  Provide URL  
+  --debug       Provide debug information  
+  --noextract   Don't extract files just show content  
+  --userlist    show the usernames used for commit  
+  --wcdb        check only wcdb  
+  --entries     check only .svn/entries file  
+  
+Credit (C) Anant Shrivastava http://anantshri.info Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs  
 
 
 References
