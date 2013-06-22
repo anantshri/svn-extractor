@@ -49,10 +49,10 @@ so here is a tool which can perform both the operations in one script.
 
 Usage
 =====
-**simplest**
 svn-extractor.py --url "url with .svn available"
 
-**alloptions**
+alloptions
+
 python svnextractor.py --help
 usage: svnextractor.py [-h] --url TARGET [--debug] [--noextract] [--userlist] [--wcdb] [--entries]
 
