@@ -67,11 +67,12 @@ def readwc(data,urli):
 def show_list(list,statement):
 	print statement
 	cnt=1
-	for x in list:
+	for x in set(list):
 		print str(cnt) + " : " + str(x)
 		cnt = cnt + 1
     
 def save_url_wc(url,filename,svn_path):
+    global author_list
     if filename != "":
         if svn_path is None:
             folder_path = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep, filename.replace("/",os.path.sep)))
@@ -95,6 +96,7 @@ def save_url_wc(url,filename,svn_path):
     return 0
 
 def save_url_svn(url,filename):
+	global author_list
     folder=os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep))
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
@@ -109,6 +111,7 @@ def main(argv):
     global show_debug
     global no_extract
     global author_list 
+    author_list=[]
     desc="""This program is used to extract the hidden SVN files from a webhost considering
 either .svn entries file (<1.6)
 or wc.db (> 1.7) are available online.
@@ -145,10 +148,11 @@ This program actually automates the directory navigation and text extraction pro
 		traceback.print_exc()
 	exit()
     if [200,403].count(r.status_code) > 0:
-	print "URL is active"
-        folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+	    print "URL is active"
+	    if no_extract:
+        	folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
+        	if not os.path.exists(folder_path):
+            	os.makedirs(folder_path)
 	if not x.entries:
 		print "Checking for presence of wc.db"
 		r=requests.get(url + "/.svn/wc.db", verify=False,allow_redirects=False)
