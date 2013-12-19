@@ -73,7 +73,7 @@ def show_list(list,statement):
     
 def save_url_wc(url,filename,svn_path):
 	global author_list 
-    if filename != "":
+	if filename != "":
         if svn_path is None:
             folder_path = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep, filename.replace("/",os.path.sep)))
             if not os.path.exists(folder_path):
