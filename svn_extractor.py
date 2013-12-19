@@ -96,7 +96,7 @@ def save_url_wc(url,filename,svn_path):
     return 0
 
 def save_url_svn(url,filename):
-	global author_list
+    global author_list
     folder=os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep))
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
