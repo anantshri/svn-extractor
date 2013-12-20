@@ -18,18 +18,18 @@ def readsvn(data,urli):
     for a in data.text.splitlines():
         #below functionality will find all usernames from svn entries file
         if (a == "has-props"):
-	    author_list.append(old_line)
+            author_list.append(old_line)
         if (a == "file"):
             print urli + old_line
             if no_extract:
-		save_url_svn(urli,old_line)
+                save_url_svn(urli,old_line)
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
             if old_line != "":
-            	folder_path = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep),  old_line)
+                folder_path = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep),  old_line)
                 if not os.path.exists(folder_path):
-			if no_extract:
-				os.makedirs(folder_path)
+                    if no_extract:
+                        os.makedirs(folder_path)
                 dir_list = dir_list + ";" + old_line
                 print urli + old_line
                 d=requests.get(urli+old_line + "/.svn/entries", verify=False)
@@ -47,21 +47,21 @@ def readwc(data,urli):
     conn = sqlite3.connect(folder + "wc.db")
     c = conn.cursor()
     try:
-	c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES where kind="file";')
-	list_items = c.fetchall()
-	#below functionality will find all usernames who have commited atleast once.
-	c.execute('select distinct changed_author from nodes;')
-	author_list = [r[0] for r in c.fetchall()]
-	c.close()
-	for filename,url_path in list_items:
-		print urli + filename
-		if no_extract:
-			save_url_wc(urli,filename,url_path)
+        c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || substr(checksum,7) || ".svn-base" as alpha from NODES where kind="file";')
+        list_items = c.fetchall()
+        #below functionality will find all usernames who have commited atleast once.
+        c.execute('select distinct changed_author from nodes;')
+        author_list = [r[0] for r in c.fetchall()]
+        c.close()
+        for filename,url_path in list_items:
+            print urli + filename
+            if no_extract:
+                save_url_wc(urli,filename,url_path)
     except Exception,e:
-	print "Error reading wc.db, either database corrupt or invalid file"
-	if show_debug:
-		traceback.print_exc()
-	return 1
+        print "Error reading wc.db, either database corrupt or invalid file"
+        if show_debug:
+            traceback.print_exc()
+        return 1
     return 0
 
 def show_list(list,statement):
@@ -70,7 +70,7 @@ def show_list(list,statement):
 	for x in set(list):
 		print str(cnt) + " : " + str(x)
 		cnt = cnt + 1
-    
+
 def save_url_wc(url,filename,svn_path):
     global author_list 
     if filename != "":
@@ -78,20 +78,20 @@ def save_url_wc(url,filename,svn_path):
             folder_path = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep, filename.replace("/",os.path.sep)))
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
-	else:
-	    folder = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep), os.path.dirname(filename).replace("/",os.path.sep))
+        else:
+            folder = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep), os.path.dirname(filename).replace("/",os.path.sep))
             if not os.path.exists(folder):
                 os.makedirs(folder)
-	    if not folder.endswith('\\'):
-		folder = folder  + "\\"
+            if not folder.endswith('\\'):
+                folder = folder  + "\\"
             try:
-		r=requests.get(url + svn_path, verify=False)
-		with open(folder+os.path.basename(filename),"wb") as f:
-			f.write(r.content)
-	    except Exception,e:
-		print "Error while accessing : " + url + svn_path
-		if show_debug:
-			traceback.print_exc()
+                r=requests.get(url + svn_path, verify=False)
+                with open(folder+os.path.basename(filename),"wb") as f:
+                    f.write(r.content)
+            except Exception,e:
+                print "Error while accessing : " + url + svn_path
+                if show_debug:
+                    traceback.print_exc()
 
     return 0
 
@@ -131,64 +131,64 @@ This program actually automates the directory navigation and text extraction pro
     no_extract=x.noextract
     show_debug=x.debug
     if (x.wcdb and x.entries):
-	print "Checking both wc.db and .svn/entries (default behaviour no need to specify switch)"
-	x.wcdb = False
-	x.entries=False
+        print "Checking both wc.db and .svn/entries (default behaviour no need to specify switch)"
+        x.wcdb = False
+        x.entries=False
     if url is None:
-	exit()
+        exit()
     print url
     if not url.endswith('/'):
         url = url + "/"
     print "Checking if URL is correct"
     try:
-	r=requests.get(url, verify=False)
+        r=requests.get(url, verify=False)
     except Exception,e:
-	print "Problem connecting to URL"
-	if show_debug:
-		traceback.print_exc()
-	exit()
+        print "Problem connecting to URL"
+        if show_debug:
+            traceback.print_exc()
+        exit()
     if [200,403].count(r.status_code) > 0:
-	    print "URL is active"
-	    if no_extract:
-        	folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
-        	if not os.path.exists(folder_path):
-            	os.makedirs(folder_path)
-	if not x.entries:
-		print "Checking for presence of wc.db"
-		r=requests.get(url + "/.svn/wc.db", verify=False,allow_redirects=False)
-		if r.status_code == 200:
-			print "WC.db found"
-			rwc=readwc(r,url)
-			if rwc == 0:
-				if x.userlist:
-					show_list(author_list,"List of Usersnames used to commit in svn are listed below")
-				exit()
-		else:
-			if show_debug:
-				print "Status code returned : " + str(r.status_code)
-				print "Full Respose"
-				print r.text
-		print "WC.db Lookup FAILED"
-	if not x.wcdb:
-		print "lets see if we can find .svn/entries"
-		#disabling redirection to make sure no redirection based 200ok is captured.
-		r=requests.get(url + "/.svn/entries", verify=False,allow_redirects=False)
-		if r.status_code == 200:
-			print "SVN Entries Found if no file listed check wc.db too"
-			data=readsvn(r,url)
-			if 'author_list' in globals() and x.userlist:
-				show_list(author_list,"List of Usersnames used to commit in svn are listed below")
-			exit();
-		else:
-			if show_debug:
-				print "Status code returned : " + str(r.status_code)
-				print "Full Respose"
-				print r.text
-		print ".svn/entries Lookup FAILED"
-	print (url + " doesn't contains any SVN repository in it")
+        print "URL is active"
+        if no_extract:
+            folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+        if not x.entries:
+            print "Checking for presence of wc.db"
+            r=requests.get(url + "/.svn/wc.db", verify=False,allow_redirects=False)
+            if r.status_code == 200:
+                print "WC.db found"
+                rwc=readwc(r,url)
+                if rwc == 0:
+                    if x.userlist:
+                        show_list(author_list,"List of Usersnames used to commit in svn are listed below")
+                        exit()
+        else:
+            if show_debug:
+                print "Status code returned : " + str(r.status_code)
+                print "Full Respose"
+                print r.text
+            print "WC.db Lookup FAILED"
+        if not x.wcdb:
+            print "lets see if we can find .svn/entries"
+            #disabling redirection to make sure no redirection based 200ok is captured.
+            r=requests.get(url + "/.svn/entries", verify=False,allow_redirects=False)
+            if r.status_code == 200:
+                print "SVN Entries Found if no file listed check wc.db too"
+                data=readsvn(r,url)
+                if 'author_list' in globals() and x.userlist:
+                    show_list(author_list,"List of Usersnames used to commit in svn are listed below")
+                    exit();
+            else:
+                if show_debug:
+                    print "Status code returned : " + str(r.status_code)
+                    print "Full Respose"
+                    print r.text
+                print ".svn/entries Lookup FAILED"
+        print (url + " doesn't contains any SVN repository in it")
     else:
-    	print "URL returns " + str(r.status_code)
-	exit()
+        print "URL returns " + str(r.status_code)
+        exit()
 
 	
 if __name__ == "__main__":
