@@ -32,8 +32,12 @@ def readsvn(data,urli):
                         os.makedirs(folder_path)
                 dir_list = dir_list + ";" + old_line
                 print urli + old_line
-                d=requests.get(urli+old_line + "/.svn/entries", verify=False)
-                readsvn(d,urli+old_line)
+                try:
+                    d=requests.get(urli+old_line + "/.svn/entries", verify=False)
+                    readsvn(d,urli+old_line)
+                except:
+                    print "Error Reading this so skilling"
+                    
         old_line = a
     return file_list,dir_list,user
 
@@ -100,10 +104,15 @@ def save_url_svn(url,filename):
     folder=os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep))
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
-    r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False)
-    if not os.path.isdir(folder+filename):
-        with open(folder + filename,"wb") as f:
-            f.write(r.content)
+    try:
+        r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False)
+        if not os.path.isdir(folder+filename):
+            with open(folder + filename,"wb") as f:
+                f.write(r.content)
+    except Exception,e:
+        print "Problem saving the URL"
+        if show_debug:
+            traceback.print_exc()
     return 0
 
 def main(argv):
