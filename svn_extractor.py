@@ -82,8 +82,8 @@ def save_url_wc(url,filename,svn_path):
             folder = os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep), os.path.dirname(filename).replace("/",os.path.sep))
             if not os.path.exists(folder):
                 os.makedirs(folder)
-            if not folder.endswith('\\'):
-                folder = folder  + "\\"
+            if not folder.endswith(os.path.sep):
+                folder = folder  + os.path.sep
             try:
                 r=requests.get(url + svn_path, verify=False)
                 with open(folder+os.path.basename(filename),"wb") as f:
@@ -101,8 +101,9 @@ def save_url_svn(url,filename):
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
     r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False)
-    with open(folder + filename,"wb") as f:
-        f.write(r.content)
+    if not os.path.isdir(folder+filename):
+        with open(folder + filename,"wb") as f:
+            f.write(r.content)
     return 0
 
 def main(argv):
