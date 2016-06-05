@@ -6,12 +6,14 @@ import argparse
 import os
 import sqlite3
 import traceback
+import re
 
-def readsvn(data,urli):
+def readsvn(data,urli,match):
     old_line=""
     file_list=""
     dir_list=""
     user = ""
+    pattern = re.compile(match, re.IGNORECASE)
     global author_list
     if not urli.endswith('/'):
         urli = urli + "/"    
@@ -20,6 +22,8 @@ def readsvn(data,urli):
         if (a == "has-props"):
             author_list.append(old_line)
         if (a == "file"):
+            if not pattern.search(old_line):
+                continue
             print urli + old_line
             if no_extract:
                 save_url_svn(urli,old_line)
@@ -34,15 +38,16 @@ def readsvn(data,urli):
                 print urli + old_line
                 try:
                     d=requests.get(urli+old_line + "/.svn/entries", verify=False)
-                    readsvn(d,urli+old_line)
+                    readsvn(d,urli+old_line,match)
                 except:
-                    print "Error Reading this so skilling"
+                    print "Error Reading %s%s/.svn/entries so killing" % (urli, old_line)
                     
         old_line = a
     return file_list,dir_list,user
 
-def readwc(data,urli):
+def readwc(data,urli,match):
     folder = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep))
+    pattern = re.compile(match, re.IGNORECASE)
     global author_list
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
@@ -58,6 +63,8 @@ def readwc(data,urli):
         author_list = [r[0] for r in c.fetchall()]
         c.close()
         for filename,url_path in list_items:
+            if not pattern.search(filename):
+                continue
             print urli + filename
             if no_extract:
                 save_url_wc(urli,filename,url_path)
@@ -136,10 +143,17 @@ This program actually automates the directory navigation and text extraction pro
     parser.add_argument("--userlist",help="show the usernames used for commit",action="store_true")
     parser.add_argument("--wcdb", help="check only wcdb",action="store_true")
     parser.add_argument("--entries", help="check only .svn/entries file",action="store_true")
+    parser.add_argument("--match", help="only download files that match regex")
     x=parser.parse_args()
     url=x.target
     no_extract=x.noextract
     show_debug=x.debug
+    match=x.match
+    if (match):
+        print "Only downloading matches to %s" % match
+        match="("+match+"|entries$|wc.db$)"  # need to allow entries$ and wc.db too
+    else:
+        match=""
     if (x.wcdb and x.entries):
         print "Checking both wc.db and .svn/entries (default behaviour no need to specify switch)"
         x.wcdb = False
@@ -168,7 +182,7 @@ This program actually automates the directory navigation and text extraction pro
             r=requests.get(url + "/.svn/wc.db", verify=False,allow_redirects=False)
             if r.status_code == 200:
                 print "WC.db found"
-                rwc=readwc(r,url)
+                rwc=readwc(r,url,match)
                 if rwc == 0:
                     if x.userlist:
                         show_list(author_list,"List of Usersnames used to commit in svn are listed below")
@@ -185,7 +199,7 @@ This program actually automates the directory navigation and text extraction pro
             r=requests.get(url + "/.svn/entries", verify=False,allow_redirects=False)
             if r.status_code == 200:
                 print "SVN Entries Found if no file listed check wc.db too"
-                data=readsvn(r,url)
+                data=readsvn(r,url,match)
                 if 'author_list' in globals() and x.userlist:
                     show_list(author_list,"List of Usersnames used to commit in svn are listed below")
                     exit();
