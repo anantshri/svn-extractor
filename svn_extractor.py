@@ -8,6 +8,10 @@ import sqlite3
 import traceback
 import re
 
+def getext(filename):
+    name, ext = os.path.splitext(filename)
+    return ext[1:]
+
 def readsvn(data,urli,match):
     old_line=""
     file_list=""
@@ -15,6 +19,7 @@ def readsvn(data,urli,match):
     user = ""
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
+    global excludes
     if not urli.endswith('/'):
         urli = urli + "/"    
     for a in data.text.splitlines():
@@ -24,8 +29,10 @@ def readsvn(data,urli,match):
         if (a == "file"):
             if not pattern.search(old_line):
                 continue
-            print urli + old_line
-            if no_extract:
+            ignore = getext(old_line) in excludes
+            if ignore: print urli + old_line, '(not extracted)'
+            else: print urli + old_line
+            if no_extract and not ignore:
                 save_url_svn(urli,old_line)
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
@@ -49,6 +56,7 @@ def readwc(data,urli,match):
     folder = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep))
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
+    global excludes
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
     with open(folder + "wc.db","wb") as f:
@@ -65,8 +73,10 @@ def readwc(data,urli,match):
         for filename,url_path in list_items:
             if not pattern.search(filename):
                 continue
-            print urli + filename
-            if no_extract:
+            ignore = getext(filename) in excludes
+            if ignore: print urli + filename, '(not extracted)'
+            else: print urli + filename
+            if no_extract and not ignore:
                 save_url_wc(urli,filename,url_path)
     except Exception,e:
         print "Error reading wc.db, either database corrupt or invalid file"
@@ -128,6 +138,7 @@ def main(argv):
     global show_debug
     global no_extract
     global author_list 
+    global excludes
     author_list=[]
     desc="""This program is used to extract the hidden SVN files from a webhost considering
 either .svn entries file (<1.6)
@@ -144,11 +155,13 @@ This program actually automates the directory navigation and text extraction pro
     parser.add_argument("--wcdb", help="check only wcdb",action="store_true")
     parser.add_argument("--entries", help="check only .svn/entries file",action="store_true")
     parser.add_argument("--match", help="only download files that match regex")
+    parser.add_argument("--exclude", help="exclude files with extensions separated by ','",dest='excludes',default='')
     x=parser.parse_args()
     url=x.target
     no_extract=x.noextract
     show_debug=x.debug
     match=x.match
+    excludes = x.excludes.split(',')    
     if (match):
         print "Only downloading matches to %s" % match
         match="("+match+"|entries$|wc.db$)"  # need to allow entries$ and wc.db too
