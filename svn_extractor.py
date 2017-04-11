@@ -11,6 +11,10 @@ import re
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
+def getext(filename):
+    name, ext = os.path.splitext(filename)
+    return ext[1:]
+
 def readsvn(data,urli,match,proxy_dict):
     old_line=""
     file_list=""
@@ -18,6 +22,7 @@ def readsvn(data,urli,match,proxy_dict):
     user = ""
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
+    global excludes
     if not urli.endswith('/'):
         urli = urli + "/"    
     for a in data.text.splitlines():
@@ -27,8 +32,11 @@ def readsvn(data,urli,match,proxy_dict):
         if (a == "file"):
             if not pattern.search(old_line):
                 continue
-            print urli + old_line
+            ignore = getext(old_line) in excludes
             if no_extract:
+            if ignore: print urli + old_line, '(not extracted)'
+            else: print urli + old_line
+            if no_extract and not ignore:
                 save_url_svn(urli,old_line,proxy_dict)
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
@@ -52,6 +60,7 @@ def readwc(data,urli,match,proxy_dict):
     folder = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep))
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
+    global excludes
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
     with open(folder + "wc.db","wb") as f:
@@ -68,8 +77,11 @@ def readwc(data,urli,match,proxy_dict):
         for filename,url_path in list_items:
             if not pattern.search(filename):
                 continue
-            print urli + filename
+            ignore = getext(filename) in excludes
             if no_extract:
+            if ignore: print urli + filename, '(not extracted)'
+            else: print urli + filename
+            if no_extract and not ignore:
                 save_url_wc(urli,filename,url_path,proxy_dict)
     except Exception,e:
         print "Error reading wc.db, either database corrupt or invalid file"
@@ -130,6 +142,7 @@ def main(argv):
     #placing global variables outside all scopes
     global show_debug
     global no_extract
+    global excludes
     global author_list 
     author_list=[]
     desc="""This program is used to extract the hidden SVN files from a webhost considering
@@ -148,11 +161,13 @@ This program actually automates the directory navigation and text extraction pro
     parser.add_argument("--entries", help="check only .svn/entries file",action="store_true")
     parser.add_argument("--proxy",help="Provide HTTP Proxy in http(s)://host:port format", dest='proxy',required=False)
     parser.add_argument("--match", help="only download files that match regex")
+    parser.add_argument("--exclude", help="exclude files with extensions separated by ','",dest='excludes',default='')
     x=parser.parse_args()
     url=x.target
     no_extract=x.noextract
     show_debug=x.debug
     match=x.match
+    excludes = x.excludes.split(',')
     prox=x.proxy
     proxy_dict=""
     if prox != None:
