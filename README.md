@@ -54,22 +54,30 @@ svn-extractor.py --url "url with .svn available"
 
 **alloptions**  
 
-python svnextractor.py --help  
-usage: svnextractor.py [-h] --url TARGET [--debug] [--noextract] [--userlist] [--wcdb] [--entries]  
+```
+$ python svnextractor.py --help  
+usage: svn_extractor.py [-h] --url TARGET [--debug] [--noextract] [--userlist]
+                        [--wcdb] [--entries] [--proxy PROXY] [--match MATCH]
 
-This program is used to extract the hidden SVN files from a webhost considering either .svn entries file (<1.6) or wc.db (> 1.7) are a actually automates the directory navigation and text extraction process  
+This program is used to extract the hidden SVN files from a webhost
+considering either .svn entries file (<1.6) or wc.db (> 1.7) are available
+online. This program actually automates the directory navigation and text
+extraction process
 
-optional arguments:  
-  -h, --help    show this help message and exit  
-  --url TARGET  Provide URL  
-  --debug       Provide debug information  
-  --noextract   Don't extract files just show content  
-  --userlist    show the usernames used for commit  
-  --wcdb        check only wcdb  
-  --entries     check only .svn/entries file  
-  
-Credit (C) Anant Shrivastava http://anantshri.info Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs  
+optional arguments:
+  -h, --help     show this help message and exit
+  --url TARGET   Provide URL
+  --debug        Provide debug information
+  --noextract    Don't extract files just show content
+  --userlist     show the usernames used for commit
+  --wcdb         check only wcdb
+  --entries      check only .svn/entries file
+  --proxy PROXY  Provide HTTP Proxy in http(s)://host:port format
+  --match MATCH  only download files that match regex
 
+Credit (C) Anant Shrivastava http://anantshri.info Greets to Amol Naik, Akash
+Mahajan, Prasanna K, Lava Kumar for valuable inputs
+```
 
 References
 ==========
