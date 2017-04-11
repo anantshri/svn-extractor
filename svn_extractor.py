@@ -171,7 +171,7 @@ This program actually automates the directory navigation and text extraction pro
         if show_debug:
             traceback.print_exc()
         exit()
-    if [200,403].count(r.status_code) > 0:
+    if [200,403,500].count(r.status_code) > 0:
         print "URL is active"
         if no_extract:
             folder_path=os.path.join("output",  url.replace("http://","").replace("https://","").replace("/",os.path.sep))
@@ -201,7 +201,8 @@ This program actually automates the directory navigation and text extraction pro
                 print "SVN Entries Found if no file listed check wc.db too"
                 data=readsvn(r,url,match)
                 if 'author_list' in globals() and x.userlist:
-                    show_list(author_list,"List of Usersnames used to commit in svn are listed below")
+                    show_list(author_list,"List of Usernames used to commit in svn are listed below")
+                    print author_list
                     exit();
             else:
                 if show_debug:
