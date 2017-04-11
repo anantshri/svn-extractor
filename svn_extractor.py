@@ -7,8 +7,11 @@ import os
 import sqlite3
 import traceback
 import re
+# disable insecurerequestwarning
+from requests.packages.urllib3.exceptions import InsecureRequestWarning
+requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
-def readsvn(data,urli,match):
+def readsvn(data,urli,match,proxy_dict):
     old_line=""
     file_list=""
     dir_list=""
@@ -26,7 +29,7 @@ def readsvn(data,urli,match):
                 continue
             print urli + old_line
             if no_extract:
-                save_url_svn(urli,old_line)
+                save_url_svn(urli,old_line,proxy_dict)
             file_list=file_list + ";" +  old_line
         if (a == "dir"):
             if old_line != "":
@@ -37,15 +40,15 @@ def readsvn(data,urli,match):
                 dir_list = dir_list + ";" + old_line
                 print urli + old_line
                 try:
-                    d=requests.get(urli+old_line + "/.svn/entries", verify=False)
-                    readsvn(d,urli+old_line,match)
+                    d=requests.get(urli+old_line + "/.svn/entries", verify=False,proxies=(proxy_dict))
+                    readsvn(d,urli+old_line,match,proxy_dict)
                 except:
                     print "Error Reading %s%s/.svn/entries so killing" % (urli, old_line)
                     
         old_line = a
     return file_list,dir_list,user
 
-def readwc(data,urli,match):
+def readwc(data,urli,match,proxy_dict):
     folder = os.path.join("output", urli.replace("http://","").replace("https://","").replace("/",os.path.sep))
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
@@ -67,7 +70,7 @@ def readwc(data,urli,match):
                 continue
             print urli + filename
             if no_extract:
-                save_url_wc(urli,filename,url_path)
+                save_url_wc(urli,filename,url_path,proxy_dict)
     except Exception,e:
         print "Error reading wc.db, either database corrupt or invalid file"
         if show_debug:
@@ -82,7 +85,7 @@ def show_list(list,statement):
 		print str(cnt) + " : " + str(x)
 		cnt = cnt + 1
 
-def save_url_wc(url,filename,svn_path):
+def save_url_wc(url,filename,svn_path,proxy_dict):
     global author_list 
     if filename != "":
         if svn_path is None:
@@ -96,7 +99,7 @@ def save_url_wc(url,filename,svn_path):
             if not folder.endswith(os.path.sep):
                 folder = folder  + os.path.sep
             try:
-                r=requests.get(url + svn_path, verify=False)
+                r=requests.get(url + svn_path, verify=False,proxies=(proxy_dict))
                 with open(folder+os.path.basename(filename),"wb") as f:
                     f.write(r.content)
             except Exception,e:
@@ -106,13 +109,13 @@ def save_url_wc(url,filename,svn_path):
 
     return 0
 
-def save_url_svn(url,filename):
+def save_url_svn(url,filename,proxy_dict):
     global author_list
     folder=os.path.join("output", url.replace("http://","").replace("https://","").replace("/",os.path.sep))
     if not folder.endswith(os.path.sep):
         folder = folder  + os.path.sep
     try:
-        r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False)
+        r=requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False,proxies=(proxy_dict))
         if not os.path.isdir(folder+filename):
             with open(folder + filename,"wb") as f:
                 f.write(r.content)
@@ -143,12 +146,22 @@ This program actually automates the directory navigation and text extraction pro
     parser.add_argument("--userlist",help="show the usernames used for commit",action="store_true")
     parser.add_argument("--wcdb", help="check only wcdb",action="store_true")
     parser.add_argument("--entries", help="check only .svn/entries file",action="store_true")
+    parser.add_argument("--proxy",help="Provide HTTP Proxy in http(s)://host:port format", dest='proxy',required=False)
     parser.add_argument("--match", help="only download files that match regex")
     x=parser.parse_args()
     url=x.target
     no_extract=x.noextract
     show_debug=x.debug
     match=x.match
+    prox=x.proxy
+    proxy_dict=""
+    if prox != None:
+        print prox
+        print "Proxy Defined"
+        proxy_dict = {"http":prox,"https":prox}
+    else:
+        print "Proxy not defined"
+        proxy_dict = ""
     if (match):
         print "Only downloading matches to %s" % match
         match="("+match+"|entries$|wc.db$)"  # need to allow entries$ and wc.db too
@@ -165,7 +178,7 @@ This program actually automates the directory navigation and text extraction pro
         url = url + "/"
     print "Checking if URL is correct"
     try:
-        r=requests.get(url, verify=False)
+        r=requests.get(url, verify=False,proxies=(proxy_dict))
     except Exception,e:
         print "Problem connecting to URL"
         if show_debug:
@@ -179,10 +192,10 @@ This program actually automates the directory navigation and text extraction pro
                 os.makedirs(folder_path)
         if not x.entries:
             print "Checking for presence of wc.db"
-            r=requests.get(url + "/.svn/wc.db", verify=False,allow_redirects=False)
+            r=requests.get(url + "/.svn/wc.db", verify=False,allow_redirects=False,proxies=(proxy_dict))
             if r.status_code == 200:
                 print "WC.db found"
-                rwc=readwc(r,url,match)
+                rwc=readwc(r,url,match,proxy_dict)
                 if rwc == 0:
                     if x.userlist:
                         show_list(author_list,"List of Usersnames used to commit in svn are listed below")
@@ -196,13 +209,13 @@ This program actually automates the directory navigation and text extraction pro
         if not x.wcdb:
             print "lets see if we can find .svn/entries"
             #disabling redirection to make sure no redirection based 200ok is captured.
-            r=requests.get(url + "/.svn/entries", verify=False,allow_redirects=False)
+            r=requests.get(url + "/.svn/entries", verify=False,allow_redirects=False,proxies=(proxy_dict))
             if r.status_code == 200:
                 print "SVN Entries Found if no file listed check wc.db too"
-                data=readsvn(r,url,match)
+                data=readsvn(r,url,match,proxy_dict)
                 if 'author_list' in globals() and x.userlist:
                     show_list(author_list,"List of Usernames used to commit in svn are listed below")
-                    print author_list
+                    #print author_list
                     exit();
             else:
                 if show_debug:
