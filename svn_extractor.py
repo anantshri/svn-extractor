@@ -33,7 +33,6 @@ def readsvn(data,urli,match,proxy_dict):
             if not pattern.search(old_line):
                 continue
             ignore = getext(old_line) in excludes
-            if no_extract:
             if ignore: print urli + old_line, '(not extracted)'
             else: print urli + old_line
             if no_extract and not ignore:
@@ -78,7 +77,6 @@ def readwc(data,urli,match,proxy_dict):
             if not pattern.search(filename):
                 continue
             ignore = getext(filename) in excludes
-            if no_extract:
             if ignore: print urli + filename, '(not extracted)'
             else: print urli + filename
             if no_extract and not ignore:
@@ -149,7 +147,7 @@ def main(argv):
 either .svn entries file (<1.6)
 or wc.db (> 1.7) are available online.
 This program actually automates the directory navigation and text extraction process"""
-    epilog="""Credit (C) Anant Shrivastava http://anantshri.info
+    epilog="""Credit (C) Anant Shrivastava http://anantshri.info. Contributions from orf, sullo, paddlesteamer. 
     Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs"""
     parser = argparse.ArgumentParser(description=desc,epilog=epilog)
     parser.add_argument("--url",help="Provide URL",dest='target',required=True)
