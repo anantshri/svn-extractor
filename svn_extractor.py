@@ -26,36 +26,35 @@ def readsvn(data, urli, match, proxy_dict):
     global author_list
     global excludes
     if not urli.endswith('/'):
-        urli = urli + "/"
+        urli = f"{urli}/"
     for a in data.text.splitlines():
         # below functionality will find all usernames from svn entries file
-        if a == "has-props":
-            author_list.append(old_line)
-        if a == "file":
-            if not pattern.search(old_line):
-                continue
-            ignore = getext(old_line) in excludes
-            if ignore:
-                print('{}{}(not extracted)'.format(urli, old_line))
-            else:
-                print('{}{}'.format(urli, old_line))
-            if no_extract and not ignore:
-                save_url_svn(urli, old_line, proxy_dict)
-            file_list = file_list + ";" + old_line
         if a == "dir":
             if old_line != "":
                 folder_path = os.path.join("output", urli.replace("http://", "").replace("https://", "").replace("/", os.path.sep), old_line)
-                if not os.path.exists(folder_path):
-                    if no_extract:
-                        os.makedirs(folder_path)
-                dir_list = dir_list + ";" + old_line
-                print('{}{}'.format(urli, old_line))
+                if not os.path.exists(folder_path) and no_extract:
+                    os.makedirs(folder_path)
+                dir_list = f"{dir_list};{old_line}"
+                print(f'{urli}{old_line}')
                 try:
                     d = requests.get(urli + old_line + "/.svn/entries", verify=False, proxies=(proxy_dict))
                     readsvn(d, urli + old_line, match, proxy_dict)
                 except Exception:
-                    print("Error Reading {}{}/.svn/entries so killing".format(urli, old_line))
+                    print(f"Error Reading {urli}{old_line}/.svn/entries so killing")
 
+        elif a == "file":
+            if not pattern.search(old_line):
+                continue
+            ignore = getext(old_line) in excludes
+            if ignore:
+                print(f'{urli}{old_line}(not extracted)')
+            else:
+                print(f'{urli}{old_line}')
+            if no_extract and not ignore:
+                save_url_svn(urli, old_line, proxy_dict)
+            file_list = f"{file_list};{old_line}"
+        elif a == "has-props":
+            author_list.append(old_line)
         old_line = a
     return file_list, dir_list, user
 
@@ -67,9 +66,9 @@ def readwc(data, urli, match, proxy_dict):
     global excludes
     if not folder.endswith(os.path.sep):
         folder = folder + os.path.sep
-    with open(folder + "wc.db", "wb") as f:
+    with open(f"{folder}wc.db", "wb") as f:
         f.write(data.content)
-    conn = sqlite3.connect(folder + "wc.db")
+    conn = sqlite3.connect(f"{folder}wc.db")
     c = conn.cursor()
     try:
         c.execute('select local_relpath, ".svn/pristine/" || substr(checksum,7,2) || "/" || '
@@ -84,9 +83,9 @@ def readwc(data, urli, match, proxy_dict):
                 continue
             ignore = getext(filename) in excludes
             if ignore:
-                print('{}{}(not extracted)'.format(urli, filename))
+                print(f'{urli}{filename}(not extracted)')
             else:
-                print("{}{}".format(urli, filename))
+                print(f"{urli}{filename}")
             if no_extract and not ignore:
                 save_url_wc(urli, filename, url_path, proxy_dict)
     except Exception:
@@ -101,7 +100,7 @@ def show_list(_list, statement):
     print(statement)
     cnt = 1
     for x in set(_list):
-        print("{} : {}".format(cnt, x))
+        print(f"{cnt} : {x}")
         cnt = cnt + 1
 
 
@@ -123,7 +122,7 @@ def save_url_wc(url, filename, svn_path, proxy_dict):
                 with open(folder + os.path.basename(filename), "wb") as f:
                     f.write(r.content)
             except Exception:
-                print("Error while accessing : {}{}".format(url, svn_path))
+                print(f"Error while accessing : {url}{svn_path}")
                 if show_debug:
                     traceback.print_exc()
 
@@ -136,7 +135,12 @@ def save_url_svn(url, filename, proxy_dict):
     if not folder.endswith(os.path.sep):
         folder = folder + os.path.sep
     try:
-        r = requests.get(url + "/.svn/text-base/" + filename + ".svn-base", verify=False, proxies=(proxy_dict))
+        r = requests.get(
+            f"{url}/.svn/text-base/{filename}.svn-base",
+            verify=False,
+            proxies=(proxy_dict),
+        )
+
         if not os.path.isdir(folder+filename):
             with open(folder + filename, "wb") as f:
                 f.write(r.content)
@@ -187,8 +191,8 @@ This program actually automates the directory navigation and text extraction pro
         print("Proxy not defined")
         proxy_dict = ""
     if match:
-        print("Only downloading matches to {}".format(match))
-        match = "("+match+"|entries$|wc.db$)"  # need to allow entries$ and wc.db too
+        print(f"Only downloading matches to {match}")
+        match = f"({match}|entries$|wc.db$)"
     else:
         match = ""
     if x.wcdb and x.entries:
@@ -199,7 +203,7 @@ This program actually automates the directory navigation and text extraction pro
         exit()
     print(url)
     if not url.endswith('/'):
-        url = url + "/"
+        url = f"{url}/"
     print("Checking if URL is correct")
     try:
         r = requests.get(url, verify=False, proxies=(proxy_dict))
@@ -217,24 +221,35 @@ This program actually automates the directory navigation and text extraction pro
                 os.makedirs(folder_path)
         if not x.entries:
             print("Checking for presence of wc.db")
-            r = requests.get(url + "/.svn/wc.db", verify=False, allow_redirects=False, proxies=(proxy_dict))
+            r = requests.get(
+                f"{url}/.svn/wc.db",
+                verify=False,
+                allow_redirects=False,
+                proxies=(proxy_dict),
+            )
+
             if r.status_code == 200:
                 print("WC.db found")
                 rwc = readwc(r, url, match, proxy_dict)
-                if rwc == 0:
-                    if x.userlist:
-                        show_list(author_list, "List of usernames used to commit in svn are listed below")
-                        exit()
+                if rwc == 0 and x.userlist:
+                    show_list(author_list, "List of usernames used to commit in svn are listed below")
+                    exit()
         else:
             if show_debug:
-                print("Status code returned : {}".format(r.status_code))
+                print(f"Status code returned : {r.status_code}")
                 print("Full Response")
                 print(r.text)
             print("WC.db Lookup FAILED")
         if not x.wcdb:
             print("lets see if we can find .svn/entries")
             # disabling redirection to make sure no redirection based 200ok is captured.
-            r = requests.get(url + "/.svn/entries", verify=False, allow_redirects=False, proxies=(proxy_dict))
+            r = requests.get(
+                f"{url}/.svn/entries",
+                verify=False,
+                allow_redirects=False,
+                proxies=(proxy_dict),
+            )
+
             if r.status_code == 200:
                 print("SVN Entries Found if no file listed check wc.db too")
                 readsvn(r, url, match, proxy_dict)
@@ -244,13 +259,13 @@ This program actually automates the directory navigation and text extraction pro
                     exit()
             else:
                 if show_debug:
-                    print("Status code returned : {}".format(r.status_code))
+                    print(f"Status code returned : {r.status_code}")
                     print("Full response")
                     print(r.text)
                 print(".svn/entries lookup FAILED")
-                print("{} doesn't contains any SVN repository in it".format(url))
+                print(f"{url} doesn't contains any SVN repository in it")
     else:
-        print("URL returns {}".format(r.status_code))
+        print(f"URL returns {r.status_code}")
         exit()
 
 
