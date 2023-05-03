@@ -17,7 +17,7 @@ def getext(filename):
     return ext[1:]
 
 
-def readsvn(data, urli, match, proxy_dict):
+def readsvn(data, urli, match, proxy_dict, output_dir):
     old_line = ""
     file_list = ""
     dir_list = ""
@@ -40,11 +40,12 @@ def readsvn(data, urli, match, proxy_dict):
             else:
                 print('{}{}'.format(urli, old_line))
             if no_extract and not ignore:
-                save_url_svn(urli, old_line, proxy_dict)
+                save_url_svn(urli, old_line, proxy_dict, output_dir)
             file_list = file_list + ";" + old_line
         if a == "dir":
             if old_line != "":
-                folder_path = os.path.join("output", urli.replace("http://", "").replace("https://", "").replace("/", os.path.sep), old_line)
+                folder_path = os.path.join(output_dir, old_line)
+                print("[readsvn] " + str(folder_path))
                 if not os.path.exists(folder_path):
                     if no_extract:
                         os.makedirs(folder_path)
@@ -52,7 +53,7 @@ def readsvn(data, urli, match, proxy_dict):
                 print('{}{}'.format(urli, old_line))
                 try:
                     d = requests.get(urli + old_line + "/.svn/entries", verify=False, proxies=(proxy_dict))
-                    readsvn(d, urli + old_line, match, proxy_dict)
+                    readsvn(d, urli + old_line, match, proxy_dict, folder_path)
                 except Exception:
                     print("Error Reading {}{}/.svn/entries so killing".format(urli, old_line))
 
@@ -60,8 +61,8 @@ def readsvn(data, urli, match, proxy_dict):
     return file_list, dir_list, user
 
 
-def readwc(data, urli, match, proxy_dict):
-    folder = os.path.join("output", urli.replace("http://", "").replace("https://", "").replace("/", os.path.sep))
+def readwc(data, urli, match, proxy_dict, folder):
+    print("[readwc] " + str(folder))
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
     global excludes
@@ -88,7 +89,7 @@ def readwc(data, urli, match, proxy_dict):
             else:
                 print("{}{}".format(urli, filename))
             if no_extract and not ignore:
-                save_url_wc(urli, filename, url_path, proxy_dict)
+                save_url_wc(urli, filename, url_path, proxy_dict, folder)
     except Exception:
         print("Error reading wc.db, either database corrupt or invalid file")
         if show_debug:
@@ -105,15 +106,17 @@ def show_list(_list, statement):
         cnt = cnt + 1
 
 
-def save_url_wc(url, filename, svn_path, proxy_dict):
+def save_url_wc(url, filename, svn_path, proxy_dict, output_dir):
     global author_list
     if filename != "":
         if svn_path is None:
-            folder_path = os.path.join("output", url.replace("http://", "").replace("https://", "").replace("/", os.path.sep, filename.replace("/", os.path.sep)))
+            folder_path = os.path.join(output_dir, filename.replace("/", os.path.sep))
+            print("[save_url_wc][if] " + str(folder_path))
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
         else:
-            folder = os.path.join("output", url.replace("http://", "").replace("https://", "").replace("/", os.path.sep), os.path.dirname(filename).replace("/", os.path.sep))
+            folder = os.path.join(output_dir, os.path.dirname(filename).replace("/", os.path.sep))
+            print("[save_url_wc][else] " + str(folder))
             if not os.path.exists(folder):
                 os.makedirs(folder)
             if not folder.endswith(os.path.sep):
@@ -130,9 +133,9 @@ def save_url_wc(url, filename, svn_path, proxy_dict):
     return 0
 
 
-def save_url_svn(url, filename, proxy_dict):
+def save_url_svn(url, filename, proxy_dict, folder):
     global author_list
-    folder = os.path.join("output", url.replace("http://", "").replace("https://", "").replace("/", os.path.sep))
+    print("[save_url_svn] " + str(folder))
     if not folder.endswith(os.path.sep):
         folder = folder + os.path.sep
     try:
@@ -162,6 +165,7 @@ This program actually automates the directory navigation and text extraction pro
     Greets to Amol Naik, Akash Mahajan, Prasanna K, Lava Kumar for valuable inputs"""
     parser = argparse.ArgumentParser(description=desc, epilog=epilog)
     parser.add_argument("--url", help="Provide URL", dest='target', required=True)
+    parser.add_argument("--output", help="Custom output directory", dest='output_dir', required=False)
     parser.add_argument("--debug", help="Provide debug information", action="store_true")
     parser.add_argument("--noextract", help="Don't extract files just show content", action="store_false")
     # using no extract in a compliment format if its defined then it will be false hence
@@ -173,6 +177,7 @@ This program actually automates the directory navigation and text extraction pro
     parser.add_argument("--exclude", help="exclude files with extensions separated by ','", dest='excludes', default='')
     x = parser.parse_args()
     url = x.target
+    output_dir = x.output_dir
     no_extract = x.noextract
     show_debug = x.debug
     match = x.match
@@ -212,7 +217,11 @@ This program actually automates the directory navigation and text extraction pro
     if [200, 403, 500].count(r.status_code) > 0:
         print("URL is active")
         if no_extract:
-            folder_path = os.path.join("output", url.replace("http://", "").replace("https://", "").replace("/", os.path.sep))
+            if not output_dir:
+                folder_path = os.path.join("output", url.replace("http://", "").replace("https://", "").replace("/", os.path.sep))
+            else:
+                folder_path = output_dir
+            print("[log][main] " + str(folder_path))
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
         if not x.entries:
@@ -220,7 +229,7 @@ This program actually automates the directory navigation and text extraction pro
             r = requests.get(url + "/.svn/wc.db", verify=False, allow_redirects=False, proxies=(proxy_dict))
             if r.status_code == 200:
                 print("WC.db found")
-                rwc = readwc(r, url, match, proxy_dict)
+                rwc = readwc(r, url, match, proxy_dict, folder_path)
                 if rwc == 0:
                     if x.userlist:
                         show_list(author_list, "List of usernames used to commit in svn are listed below")
@@ -237,7 +246,7 @@ This program actually automates the directory navigation and text extraction pro
             r = requests.get(url + "/.svn/entries", verify=False, allow_redirects=False, proxies=(proxy_dict))
             if r.status_code == 200:
                 print("SVN Entries Found if no file listed check wc.db too")
-                readsvn(r, url, match, proxy_dict)
+                readsvn(r, url, match, proxy_dict, folder_path)
                 if 'author_list' in globals() and x.userlist:
                     show_list(author_list, "List of Usernames used to commit in svn are listed below")
                     # print author_list
