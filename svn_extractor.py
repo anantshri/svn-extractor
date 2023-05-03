@@ -45,7 +45,6 @@ def readsvn(data, urli, match, proxy_dict, output_dir):
         if a == "dir":
             if old_line != "":
                 folder_path = os.path.join(output_dir, old_line)
-                print("[readsvn] " + str(folder_path))
                 if not os.path.exists(folder_path):
                     if no_extract:
                         os.makedirs(folder_path)
@@ -62,7 +61,6 @@ def readsvn(data, urli, match, proxy_dict, output_dir):
 
 
 def readwc(data, urli, match, proxy_dict, folder):
-    print("[readwc] " + str(folder))
     pattern = re.compile(match, re.IGNORECASE)
     global author_list
     global excludes
@@ -111,12 +109,10 @@ def save_url_wc(url, filename, svn_path, proxy_dict, output_dir):
     if filename != "":
         if svn_path is None:
             folder_path = os.path.join(output_dir, filename.replace("/", os.path.sep))
-            print("[save_url_wc][if] " + str(folder_path))
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
         else:
             folder = os.path.join(output_dir, os.path.dirname(filename).replace("/", os.path.sep))
-            print("[save_url_wc][else] " + str(folder))
             if not os.path.exists(folder):
                 os.makedirs(folder)
             if not folder.endswith(os.path.sep):
@@ -135,7 +131,6 @@ def save_url_wc(url, filename, svn_path, proxy_dict, output_dir):
 
 def save_url_svn(url, filename, proxy_dict, folder):
     global author_list
-    print("[save_url_svn] " + str(folder))
     if not folder.endswith(os.path.sep):
         folder = folder + os.path.sep
     try:
@@ -221,7 +216,6 @@ This program actually automates the directory navigation and text extraction pro
                 folder_path = os.path.join("output", url.replace("http://", "").replace("https://", "").replace("/", os.path.sep))
             else:
                 folder_path = output_dir
-            print("[log][main] " + str(folder_path))
             if not os.path.exists(folder_path):
                 os.makedirs(folder_path)
         if not x.entries:
